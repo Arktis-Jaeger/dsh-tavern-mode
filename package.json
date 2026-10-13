@@ -1,0 +1,39 @@
+{
+  "name": "@local/dsh-tavern-mode",
+  "version": "1.0.0",
+  "private": true,
+  "description": "酒馆模式：角色扮演 Agent 预设 + 跟随单段对话保存的自定义 System Prompt",
+  "type": "module",
+  "icon": "./icon.svg",
+  "exports": {
+    ".": "./index.js",
+    "./host": "./host.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-storage-domain": "^0.2.0-rc.2",
+    "@deepseek-ai/dsh-system-prompt": "^0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.4"
+  },
+  "meta": {
+    "title": "酒馆模式",
+    "description": "角色扮演 Agent 预设，以及跟随单段对话保存的自定义 System Prompt。"
+  }
+}

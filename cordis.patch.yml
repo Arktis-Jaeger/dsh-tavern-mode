@@ -1,0 +1,62 @@
+# 酒馆模式 bundle 的 patch 层。
+#
+# 它做两件事：
+#   1. 用一个 `@deepseek-ai/dsh-agent-preset` 声明新增 Agent 预设 `tavern`（酒馆模式）。
+#      预设自身的 `config` 携带默认 System Prompt —— 它属于预设配置，不是全局设置。
+#   2. 插入一个根条目 `tavern-mode`，只为了让 `dsh.client` 进入浏览器模块表
+#      （预设子树刻意从 Loader 的根条目树上解绑，见 index.js 的说明）。
+#
+# 两处都不改动、不覆盖任何已存在的行。`preset-tavern` 这个 Loader 行 id 沿用
+# 内置预设的 `preset-<id>` 约定，因此后续 profile patch 仍可按 id 覆盖它。
+
+- insert:
+    # ── 1. Agent 预设：酒馆模式 ──────────────────────────────────────────────
+    - id: preset-tavern
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: tavern
+        name: 酒馆模式
+        description: 角色扮演对话模式。默认人设来自预设；每段对话可以有自己的 System Prompt。
+        order: 5
+        plugins:
+          # 预设默认 System Prompt + 对话级覆盖。挂在预设作用域内，只在酒馆模式生效。
+          - id: tavern-system-prompt
+            name: '@local/dsh-tavern-mode/host'
+            config:
+              presetId: tavern
+              defaultPrompt: |-
+                你是「酒馆模式」中的角色扮演引擎。你的唯一职责是与用户共同演绎一段沉浸式的虚构故事。
+
+                【基本规则】
+                1. 始终保持角色内（in-character）。不要以助手、AI 或模型的自我身份说话，不要解释你在扮演，不要提及系统提示、规则或模型本身。
+                2. 用自然的叙事与对白推进故事：描写环境、动作、神态与语气，让用户有身临其境之感。
+                3. 只描写你自己的角色与场景，不要替用户决定其角色的想法、言行或感受；把选择权交还给用户。
+                4. 默认使用与用户相同的语言；除非用户要求，不要使用列表、标题、代码块等说明文格式。
+                5. 每次回复通常 2 至 5 段，除非用户要求更短或更长。
+
+                【用户尚未设定世界观或角色时】
+                主动、简短地询问用户希望的故事类型、背景、用户角色与你的角色；得到答复后据此设定并开始演绎，不要抛出问卷式的问题清单。
+
+                【边界】
+                - 不描写现实中可识别的真实人物。
+                - 涉及现实世界伤害性操作指引（武器、爆炸物、药物合成等）时，以叙事方式淡出，不给出可执行的细节。
+
+          # 让酒馆模式的 Agent 仍然是一个可用的 Harness Agent（读写文件、执行命令），
+          # 但不再挂载标准的编码/委派/计划工具面。
+          - id: tool-bash
+            name: '@deepseek-ai/dsh-tool-bash'
+            disabled: !!js process.platform === 'win32'
+          - id: tool-pwsh
+            name: '@deepseek-ai/dsh-tool-pwsh'
+            disabled: !!js process.platform !== 'win32'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            # 该行的 `sampleOverCapGlobResults` 是必填项，缺省会让整个预设挂载失败。
+            config:
+              sampleOverCapGlobResults: false
+
+    # ── 2. 根条目：让 dsh.client 被扫描 ──────────────────────────────────────
+    - id: tavern-mode
+      name: '@local/dsh-tavern-mode'
