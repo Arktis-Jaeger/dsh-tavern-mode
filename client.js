@@ -177,7 +177,12 @@ window.__ModuleLoader__.load({
       return rosterPromise
     }
 
-    /** 该会话是否属于酒馆模式；`blank` 用于让两个挂载点互不重叠。 */
+    /**
+     * 该会话是否属于酒馆模式，以及它是否还停在「新建对话」那一屏。
+     *
+     * `hero` 用于让两个挂载点互不重叠：会话头部在真正的空白状态下整体不渲染
+     * （`hideChrome`），一旦提交过首个提示词或开始运行，头部就会出现、改由头部座位接管。
+     */
     function useGate(useSessions, sessionId, remoteOf, serviceLookup) {
       const summary = useSessions((state) => (sessionId === undefined ? undefined : state.byId[sessionId]))
       const preset = summary?.projectionValues?.agentPreset ?? null
@@ -194,7 +199,8 @@ window.__ModuleLoader__.load({
         }
       }, [preset, blank, remoteOf, serviceLookup])
       const visible = preset === PRESET_ID || (preset === null && blank && rosterDefault === PRESET_ID)
-      return { visible, blank }
+      const hero = blank && summary?.promptAttempted !== true && summary?.running !== true
+      return { visible, hero }
     }
 
     // ── 样式（只使用宿主主题 token；由组件渲染，卸载即消失） ──────────────
@@ -388,7 +394,7 @@ window.__ModuleLoader__.load({
       const entry = useEntry(sessionId)
       const [open, setOpen] = useState(false)
       const trigger = useRef(null)
-      const visible = gate.visible && (variant !== 'dock' || gate.blank)
+      const visible = gate.visible && (variant !== 'hero' || gate.hero)
 
       useEffect(() => {
         if (!visible || sessionId === undefined) return
